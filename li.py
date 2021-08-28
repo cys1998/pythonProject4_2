@@ -1,6 +1,7 @@
 import matplotlib
 from flask import Flask, render_template,send_file
 import io
+import os
 import base64
 import pandas as pd
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -8,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import seaborn as sns
 
-fig,ax = plt.subplots(figsize=(6,4))
+fig,ax = plt.subplots(figsize=(8,6)) #하나의 axes를 가지는 figure를 만듦
 ax = sns.set_style(style="darkgrid")
 
 app = Flask(__name__)
@@ -19,55 +20,27 @@ def index():
 
 @app.route('/visualize')
 def visualize():
-    aug = pd.read_excel('C:/Users/최윤수/Desktop/monthly_li/리시8월.xls', sheet_name=0)
-    aug = aug.drop(columns=['등급', '품목', '품종'], axis=0)
+    path = 'C:/Users/최윤수/Desktop/monthly_li'
+    file_list = os.listdir(path)
+    print(file_list)
+    li_all = pd.DataFrame()
 
-    a = aug['속수량'].sum().astype(int)
-    b = int(aug['최고단가'].mean())
-    c = int(aug['최저단가'].mean())
-    d = int(aug['평균단가'].mean())
-    data = {'Date': ['20/08'],
-            '속수량': a,
-            '최고단가': b,
-            '최저단가': c,
-            '평균단가': d}
+    for file_name in file_list:
+        file_name = path + '/' + file_name
+        i = pd.read_excel(file_name)
+        i = i.drop(columns=['품종', '품목', '등급'], axis=0)
 
-    aug = pd.DataFrame(data)
-    aug
-
-    sep = pd.read_excel('C:/Users/최윤수/Desktop/monthly_li/리시9월.xls', sheet_name=0)
-    sep = sep.drop(columns=['등급', '품목', '품종'], axis=0)
-
-    a = sep['속수량'].sum().astype(int)
-    b = int(sep['최고단가'].mean())
-    c = int(sep['최저단가'].mean())
-    d = int(sep['평균단가'].mean())
-    data = {'Date': ['20/09'],
-            '속수량': a,
-            '최고단가': b,
-            '최저단가': c,
-            '평균단가': d}
-
-    sep = pd.DataFrame(data)
-    sep
-
-    oct = pd.read_excel('C:/Users/최윤수/Desktop/monthly_li/리시10월.xls', sheet_name=0)
-    oct = oct.drop(columns=['등급', '품목', '품종'], axis=0)
-
-    a = oct['속수량'].sum().astype(int)
-    b = int(oct['최고단가'].mean())
-    c = int(oct['최저단가'].mean())
-    d = int(oct['평균단가'].mean())
-    data = {'Date': ['20/10'],
-            '속수량': a,
-            '최고단가': b,
-            '최저단가': c,
-            '평균단가': d}
-
-    oct = pd.DataFrame(data)
-    oct
-
-    li_all = pd.concat((aug, sep, oct), axis=0, ignore_index=True)
+        a = i['속수량'].sum().astype(int)
+        b = int(i['최고단가'].mean())
+        c = int(i['최저단가'].mean())
+        d = int(i['평균단가'].mean())
+        data = {'Date': [file_name.replace(path + '/', '').split('.')[0]],
+                '속수량': a,
+                '최고단가': b,
+                '최저단가': c,
+                '평균단가': d}
+        i = pd.DataFrame(data)
+        li_all = pd.concat((li_all, i), axis=0, ignore_index=True)
     print(li_all)
 
     font_location = 'C:/Windows/Fonts/malgun.ttf'
@@ -77,16 +50,17 @@ def visualize():
     sns.lineplot(data=li_all, x='Date', y='최고단가', label='최고단가', marker='s')
     sns.lineplot(data=li_all, x='Date', y='평균단가', label='평균단가', marker='s')
     sns.lineplot(data=li_all, x='Date', y='최저단가', label='최저단가', marker='s')
+    #sns.set(font=font_name)
 
     plt.ylabel("PRICE")
     plt.xlabel("DATE")
-    plt.title('Monthly_Li', fontsize=10)
+    plt.title('Monthly_Lisianthus', fontsize=10)
 
-    canvas = FigureCanvas(fig)
-    img = io.BytesIO()
-    fig.savefig(img)
-    img.seek(0)
-    return send_file(img, mimetype='img/png')
+    canvas = FigureCanvas(fig) #사진이나 다양한 형태의 그림 명시하기 위한 부분.
+    img = io.BytesIO() #파일로 저장 안하고 binary object에 저장해서 그대로 file에 넘겨준다고 생각하면 됨..-> 객체 내에 저장된 bytes정보를 불러와 이미지로 읽어줌.
+    fig.savefig(img)  #절대경로, 상대경로...(plt.savefig('fig1.png',dpi=300) -> pyplot을 figure 파일로 저장하는 방법 // 이미지를 이미지 파일로 저장
+    img.seek(0) #object읽었기 때문에 처음으로 돌아가줌..
+    return send_file(img, mimetype='img/png') #url요청 오면 그에 상응하는 파일을 내부에서 생성해서 보내주는 함수
 
 
 if __name__ == '__main__':
